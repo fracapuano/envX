@@ -227,6 +227,15 @@ def _write_rollout(
     else:
         frames = _collect_cube(seed=seed, steps=steps, image_size=image_size)
 
+    frames = [
+        np.asarray(
+            Image.fromarray(frame).resize(
+                (image_size, image_size),
+                Image.Resampling.LANCZOS,
+            )
+        )
+        for frame in frames
+    ]
     output_dir.mkdir(parents=True, exist_ok=True)
     gif_path = output_dir / f"{name}.gif"
     preview_path = output_dir / f"{name}-preview.png"
