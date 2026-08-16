@@ -1,0 +1,18 @@
+envX
+Copyright 2026 Francesco Capuano
+
+This repository consolidates the following implementations at these source
+revisions:
+
+- pusht-jax: 74f4285 (Apache-2.0)
+- tworooms-jax: 60e74a0 (Apache-2.0)
+- reacher-mjx: 3cd65fa (MIT)
+- OGBench Cube MJX fork: 6bd3daf (MIT)
+
+PushT compatibility is based on Diffusion Policy and Hugging Face gym-pusht.
+Two-Room compatibility is based on Stable World Models and PLDM/EB-JEPA.
+Reacher loads its model and task constants from DeepMind Control Suite.
+Cube includes the minimal OGBench model builder and required robot assets.
+
+Full third-party notices and license texts are in THIRD_PARTY_LICENSES.md and
+the LICENSE files retained beside the vendored robot assets.

@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "envx"
+version = "0.1.0"
+description = "Unified JAX and MJX environments for massively parallel reinforcement learning"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { file = "LICENSE" }
+authors = [{ name = "Francesco Capuano" }]
+dependencies = [
+  "dm-control>=1.0.41,<2",
+  "gymnasium>=1.2,<2",
+  "gymnax>=0.0.9,<0.1",
+  "jax>=0.7,<0.11",
+  "mujoco-mjx[warp]>=3.11,<4",
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.optional-dependencies]
+cuda12 = ["jax[cuda12]>=0.7,<0.11"]
+cuda13 = ["jax[cuda13]>=0.7,<0.11"]
+dev = [
+  "chex>=0.1.89",
+  "imageio[ffmpeg]>=2.37",
+  "pytest>=8.4",
+  "ruff>=0.12",
+]
+reference = [
+  "gym-pusht==0.1.6",
+  "pymunk>=6.6,<7",
+]
+
+[project.urls]
+Repository = "https://github.com/fracapuano/envX"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/envx"]
+artifacts = ["src/envx/cube/_vendor/descriptions/**"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src",
+  "/tests",
+  "/examples",
+  "/README.md",
+  "/LICENSE",
+  "/NOTICE",
+  "/THIRD_PARTY_LICENSES.md",
+]
+
+[tool.pytest.ini_options]
+addopts = "-ra --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["src/envx/cube/_vendor"]
+
+[tool.ruff.lint]
+select = ["B", "E", "F", "I", "SIM", "UP", "W"]
+
+[tool.ruff.format]
+quote-style = "double"

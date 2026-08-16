@@ -1,0 +1,11 @@
+cff-version: 1.2.0
+message: "If you use envX, please cite this repository and the original environment datasets."
+title: "envX: Unified JAX and MJX environments"
+type: software
+authors:
+  - family-names: Capuano
+    given-names: Francesco
+repository-code: "https://github.com/fracapuano/envX"
+version: 0.1.0
+date-released: 2026-08-16
+license: Apache-2.0
