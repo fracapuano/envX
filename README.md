@@ -150,6 +150,21 @@ Compilation and static render/contact buffers make `num_envs`, image sizes,
 and simulator variants construction-time choices. Create a separate env object
 for each static configuration used by a training job.
 
+## Visual rollouts
+
+Generate reproducible random-policy GIFs for all four environments and a
+labeled 2x2 animation:
+
+```bash
+uv run python examples/visualize_rollout.py all \
+  --output-dir rollouts --steps 60 --image-size 128 --seed 7
+```
+
+On macOS the Reacher and Cube images use MJX-Warp's CPU validation renderer;
+their training-time fast batched rendering path is CUDA. Two-Room and Reacher
+keep goal markers hidden in this example, matching their default dataset-safe
+configuration.
+
 ## Validation
 
 ```bash
