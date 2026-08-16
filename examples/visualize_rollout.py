@@ -266,11 +266,22 @@ def _run_all_in_isolated_processes(args: argparse.Namespace) -> None:
             str(args.frame_duration_ms),
         ]
         subprocess.run(command, check=True)
-    _write_grid(args.output_dir, args.image_size, args.frame_duration_ms)
+    _write_grid(
+        args.output_dir,
+        args.image_size,
+        args.frame_duration_ms,
+        output_path=args.grid_output,
+    )
 
 
-def _write_grid(output_dir: Path, image_size: int, frame_duration_ms: int) -> None:
-    """Combine the four equal-length rollouts into one labeled 2x2 GIF."""
+def _write_grid(
+    output_dir: Path,
+    image_size: int,
+    frame_duration_ms: int,
+    *,
+    output_path: Path | None = None,
+) -> None:
+    """Combine the four equal-length rollouts into one labeled 4x1 GIF."""
 
     labels = {
         "pusht": "PushT",
@@ -288,9 +299,12 @@ def _write_grid(output_dir: Path, image_size: int, frame_duration_ms: int) -> No
     label_height = 26
     gap = 6
     cell_height = image_size + label_height
-    canvas_size = (2 * image_size + gap, 2 * cell_height + gap)
+    canvas_size = (
+        len(ENVIRONMENTS) * image_size + (len(ENVIRONMENTS) - 1) * gap,
+        cell_height,
+    )
     try:
-        font = ImageFont.truetype("DejaVuSans-Bold.ttf", 15)
+        font = ImageFont.truetype("DejaVuSans-Bold.ttf", min(15, max(11, image_size // 5)))
     except OSError:
         font = ImageFont.load_default()
 
@@ -299,19 +313,17 @@ def _write_grid(output_dir: Path, image_size: int, frame_duration_ms: int) -> No
         canvas = Image.new("RGB", canvas_size, (25, 27, 31))
         draw = ImageDraw.Draw(canvas)
         for index, name in enumerate(ENVIRONMENTS):
-            column = index % 2
-            row = index // 2
-            left = column * (image_size + gap)
-            top = row * (cell_height + gap)
+            left = index * (image_size + gap)
             frame = source_frames[name][frame_index].resize(
                 (image_size, image_size),
                 Image.Resampling.LANCZOS,
             )
-            canvas.paste(frame, (left, top + label_height))
-            draw.text((left + 7, top + 5), labels[name], fill=(245, 245, 245), font=font)
+            canvas.paste(frame, (left, label_height))
+            draw.text((left + 5, 5), labels[name], fill=(245, 245, 245), font=font)
         grid_frames.append(np.asarray(canvas))
 
-    gif_path = output_dir / "all-environments.gif"
+    gif_path = output_path or output_dir / "all-environments.gif"
+    gif_path.parent.mkdir(parents=True, exist_ok=True)
     preview_path = output_dir / "all-environments-preview.png"
     imageio.mimsave(gif_path, grid_frames, duration=frame_duration_ms, loop=0)
     imageio.imwrite(preview_path, grid_frames[len(grid_frames) // 2])
@@ -326,6 +338,11 @@ def main() -> None:
     parser.add_argument("--steps", type=int, default=60)
     parser.add_argument("--image-size", type=int, default=128)
     parser.add_argument("--frame-duration-ms", type=int, default=80)
+    parser.add_argument(
+        "--grid-output",
+        type=Path,
+        help="Optional path for the combined four-column GIF.",
+    )
     args = parser.parse_args()
     if args.steps < 1 or args.image_size < 1 or args.frame_duration_ms < 1:
         parser.error("steps, image-size, and frame-duration-ms must be positive")

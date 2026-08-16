@@ -3,6 +3,8 @@
 envX puts four accelerator-oriented RL environments behind one batch-first,
 Gymnax-shaped interface:
 
+![Random-policy rollouts from PushT, Two-Room, Reacher, and Cube](docs/assets/envx-rollouts-64.gif)
+
 | Name | Simulator | Default observation | Action |
 | --- | --- | --- | --- |
 | `pusht` | Pure JAX rigid-body/contact solver | 5-D state | absolute XY target |
@@ -153,7 +155,7 @@ for each static configuration used by a training job.
 ## Visual rollouts
 
 Generate reproducible random-policy GIFs for all four environments and a
-labeled 2x2 animation:
+labeled four-column animation:
 
 ```bash
 uv run python examples/visualize_rollout.py all \
