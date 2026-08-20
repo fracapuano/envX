@@ -139,7 +139,7 @@ class OGBenchCubeJaxEnv:
         num_envs: Number of worlds in the compiled batch.
         env_type: ``single``, ``double``, ``triple``, ``quadruple``, or
             ``octuple``.
-        observation_type: ``states`` for dataset-compatible state vectors or
+        observation_type: ``state`` for dataset-compatible state vectors or
             ``pixels`` for batched MJX-Warp RGB observations.
         reward_task_id: ``None`` selects goal-conditioned sparse rewards.  An
             integer in ``1..5`` selects the corresponding single-task reward;
@@ -176,7 +176,7 @@ class OGBenchCubeJaxEnv:
         self,
         num_envs: int,
         env_type: str = "single",
-        observation_type: str = "states",
+        observation_type: str = "state",
         reward_task_id: int | None = None,
         permute_blocks: bool | None = None,
         success_timing: str | None = None,
@@ -191,8 +191,8 @@ class OGBenchCubeJaxEnv:
             raise ValueError(f"num_envs must be positive, got {num_envs}.")
         if env_type not in _NUM_CUBES:
             raise ValueError(f"Unknown env_type {env_type!r}; expected one of {tuple(_NUM_CUBES)}.")
-        if observation_type not in ("states", "pixels"):
-            raise ValueError("observation_type must be either 'states' or 'pixels'.")
+        if observation_type not in ("state", "pixels"):
+            raise ValueError("observation_type must be either 'state' or 'pixels'.")
         if reward_task_id is not None and not 0 <= reward_task_id <= 5:
             raise ValueError("reward_task_id must be None or an integer in [0, 5].")
 
@@ -561,7 +561,7 @@ class OGBenchCubeJaxEnv:
         return image, data
 
     def _observe_batch(self, data: Any) -> tuple[jax.Array, Any]:
-        if self.observation_type == "states":
+        if self.observation_type == "state":
             return jax.vmap(self._state_observation)(data), data
         return jax.vmap(self._render_one, in_axes=(0, None))(data, self._render_context.pytree())
 
@@ -632,7 +632,7 @@ class OGBenchCubeJaxEnv:
         observation, data = self._observe_batch(data)
         if self.use_oracle_rep:
             goal = jax.vmap(self._oracle_observation)(goal_data)
-        elif self.observation_type == "states":
+        elif self.observation_type == "state":
             goal = jax.vmap(self._state_observation)(goal_data)
         else:
             goal, _ = self._observe_batch(goal_data)

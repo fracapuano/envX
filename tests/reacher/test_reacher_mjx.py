@@ -28,10 +28,9 @@ def _physics_env(
         num_worlds,
         (16, 16),
         task=task,
-        observation_type="states",
+        observation_type="state",
         episode_length=episode_length,
         physics_backend="jax",
-        render=False,
         visualize_goal=visualize_goal,
     )
 
@@ -208,15 +207,12 @@ def test_goal_visualization_is_opt_in_and_dynamics_are_invariant():
 def test_warp_physics_matches_mjx_jax_backend():
     keys = jax.random.split(jax.random.key(22), 3)
     actions = jnp.array([[0.1, -0.2], [-0.3, 0.4], [1.0, -1.0]])
-    jax_env = create_reacher(
-        3, (8, 8), observation_type="states", physics_backend="jax", render=False
-    )
+    jax_env = create_reacher(3, (8, 8), observation_type="state", physics_backend="jax")
     warp_env = create_reacher(
         3,
         (8, 8),
-        observation_type="states",
+        observation_type="state",
         physics_backend="warp",
-        render=False,
     )
 
     jax_state = jax_env.step(jax_env.reset(keys), actions)
@@ -333,11 +329,11 @@ from envx.reacher import create_reacher
 assert len(jax.local_devices()) == 2
 keys = jax.random.split(jax.random.key(123), 4)
 actions = jax.random.uniform(jax.random.key(456), (3, 4, 2), minval=-1, maxval=1)
-single = create_reacher(4, (8, 8), observation_type='states',
-                        physics_backend='jax', render=False,
+single = create_reacher(4, (8, 8), observation_type='state',
+                        physics_backend='jax',
                         devices=[jax.local_devices()[0]])
-multi = create_reacher(4, (8, 8), observation_type='states',
-                       physics_backend='jax', render=False,
+multi = create_reacher(4, (8, 8), observation_type='state',
+                       physics_backend='jax',
                        devices=jax.local_devices())
 single_final, single_traj = single.rollout(single.reset(keys), actions)
 multi_final, multi_traj = multi.rollout(multi.reset(keys), actions)

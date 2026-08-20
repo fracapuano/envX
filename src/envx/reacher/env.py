@@ -147,7 +147,7 @@ class ReacherEnv:
             renderer defaults to ``(240, 320)``.
         task: DMC's ``easy`` or ``hard`` task.  These differ only in target
             radius: 0.05 m and 0.015 m respectively.
-        observation_type: ``pixels`` for camera observations or ``states`` for
+        observation_type: ``pixels`` for camera observations or ``state`` for
             DMC's flattened ``position, to_target, velocity`` observation.
         episode_length: Truncation horizon.  DMC's 20 second default at a
             0.02 second control timestep is 1000 transitions.
@@ -181,10 +181,10 @@ class ReacherEnv:
         image_size: tuple[int, int] = (240, 320),
         *,
         task: str = "easy",
-        observation_type: str = "pixels",
+        observation_type: str = "state",
         episode_length: int | None = None,
         physics_backend: str = "warp",
-        render: bool = True,
+        render: bool | None = None,
         use_shadows: bool = True,
         visualize_goal: bool = False,
         devices: Sequence[jax.Device] | None = None,
@@ -195,8 +195,10 @@ class ReacherEnv:
             raise ValueError("image_size must contain two positive integers.")
         if task not in _TARGET_SIZES:
             raise ValueError("task must be either 'easy' or 'hard'.")
-        if observation_type not in ("pixels", "states"):
-            raise ValueError("observation_type must be 'pixels' or 'states'.")
+        if observation_type not in ("pixels", "state"):
+            raise ValueError("observation_type must be 'pixels' or 'state'.")
+        if render is None:
+            render = observation_type == "pixels"
         if episode_length is not None and episode_length < 1:
             raise ValueError("episode_length must be positive.")
         if physics_backend not in ("jax", "warp"):
@@ -212,7 +214,7 @@ class ReacherEnv:
             raise RuntimeError(
                 "The visual Reacher environment requires MJX-Warp on an "
                 "NVIDIA CUDA GPU. This host can run state-observation parity "
-                "tests with observation_type='states', render=False, and "
+                "tests with observation_type='state' and "
                 "physics_backend='jax'."
             )
 
@@ -303,7 +305,7 @@ class ReacherEnv:
 
     @property
     def observation_shape(self) -> tuple[int, ...]:
-        if self.observation_type == "states":
+        if self.observation_type == "state":
             return (6,)
         return (*self.image_size, 3)
 
@@ -354,7 +356,7 @@ class ReacherEnv:
         return jnp.concatenate((data.qpos, to_target, data.qvel))
 
     def _observe(self, data):
-        if self.observation_type == "states":
+        if self.observation_type == "state":
             return data, jax.vmap(self._state_observation_one)(data)
         if not self.render_enabled:
             empty = jnp.zeros((self.worlds_per_device, 0, 0, 3), dtype=jnp.uint8)

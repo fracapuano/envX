@@ -64,7 +64,7 @@ def make(name: str, *, num_envs: int = 1, **kwargs: Any):
     elif name == "reacher":
         from envx.reacher import ReacherEnv
 
-        observation_type = kwargs.setdefault("observation_type", "states")
+        observation_type = kwargs.setdefault("observation_type", "state")
         kwargs.setdefault("render", observation_type == "pixels")
         env = ReacherAdapter(ReacherEnv(num_worlds=num_envs, **kwargs))
     else:
