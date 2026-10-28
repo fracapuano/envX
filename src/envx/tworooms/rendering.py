@@ -30,6 +30,11 @@ def render_swm(
     visualize_goal: bool = False,
     agent_position: Array | None = None,
     image_size: int = 224,
+    background_color=(255, 255, 255),
+    wall_color=(0, 0, 0),
+    door_color=(255, 255, 255),
+    agent_color=(255, 0, 0),
+    target_color=(0, 255, 0),
 ) -> Array:
     """Render an HWC uint8 frame matching ``swm/TwoRoom-v1`` defaults."""
     coordinates = jnp.arange(image_size, dtype=jnp.float32)
@@ -58,14 +63,20 @@ def render_swm(
     border = border.at[image_size - 14 : image_size - 10, :].set(True)
     wall_mask = wall_mask | border
 
-    image = jnp.full((image_size, image_size, 3), 255, dtype=jnp.uint8)
-    image = jnp.where(wall_mask[..., None], jnp.zeros(3, dtype=jnp.uint8), image)
-    if visualize_goal:
+    image = jnp.broadcast_to(jnp.asarray(background_color, jnp.uint8), (image_size, image_size, 3))
+    image = jnp.where(
+        (wall_stripe & door_span)[..., None], jnp.asarray(door_color, jnp.uint8), image
+    )
+    image = jnp.where(wall_mask[..., None], jnp.asarray(wall_color, jnp.uint8), image)
+
+    def draw_target(image):
         target_dot = _gaussian_dot(state.target_position, state.target_radius, image_size)
-        image = _alpha_blend(image, target_dot, (0, 255, 0))
+        return _alpha_blend(image, target_dot, target_color)
+
+    image = jax.lax.cond(jnp.asarray(visualize_goal), draw_target, lambda image: image, image)
     position = state.agent_position if agent_position is None else agent_position
     agent_dot = _gaussian_dot(position, state.agent_radius, image_size)
-    return _alpha_blend(image, agent_dot, (255, 0, 0))
+    return _alpha_blend(image, agent_dot, agent_color)
 
 
 def render_pldm_dot(position: Array, dot_std: float = 1.3, image_size: int = 65) -> Array:

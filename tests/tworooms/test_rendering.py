@@ -3,7 +3,31 @@ import jax.numpy as jnp
 import numpy as np
 
 from envx.tworooms import EnvParams, PLDMTwoRoomsEnv, TwoRoomsEnv, state_from_proprio
-from envx.tworooms.rendering import render_pldm_dot, render_pldm_walls
+from envx.tworooms.rendering import render_pldm_dot, render_pldm_walls, render_swm
+
+
+def test_current_renderer_supports_batched_colors_and_goal_visibility():
+    state = state_from_proprio(jnp.array([60.0, 100.0]), jnp.array([180.0, 180.0]), EnvParams())
+
+    def render(color, visible):
+        return render_swm(
+            state,
+            agent_color=color,
+            target_color=(20, 30, 40),
+            background_color=(100, 110, 120),
+            wall_color=(1, 2, 3),
+            door_color=(4, 5, 6),
+            visualize_goal=visible,
+        )
+
+    pixels = jax.jit(jax.vmap(render))(
+        jnp.array([[7, 8, 9], [10, 11, 12]]), jnp.array([False, True])
+    )
+    np.testing.assert_array_equal(pixels[:, 100, 60], [[7, 8, 9], [10, 11, 12]])
+    np.testing.assert_array_equal(pixels[:, 100, 112], [[1, 2, 3]] * 2)
+    np.testing.assert_array_equal(pixels[:, 49, 112], [[4, 5, 6]] * 2)
+    np.testing.assert_array_equal(pixels[0, 180, 180], [100, 110, 120])
+    np.testing.assert_array_equal(pixels[1, 180, 180], [20, 30, 40])
 
 
 def test_current_renderer_geometry_dtype_and_jit():
