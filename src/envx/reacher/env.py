@@ -23,6 +23,8 @@ import mujoco
 from dm_control.suite import reacher as dmc_reacher
 from mujoco import mjx
 
+from envx._rendering import create_grid_render_context, grid_render_model
+
 Array = jax.Array
 
 _TARGET_SIZES = {
@@ -267,14 +269,31 @@ class ReacherEnv:
 
         self._render_context = None
         self._render_context_pytree = None
+        self._render_model = self.model
         if self.render_enabled:
+            render_model = grid_render_model(self.mj_model)
+            floor = render_model.material("grid").id
+            # Retain a faint highlight without Warp's untextured white hotspot.
+            render_model.mat_specular[floor] = 0.03
+            # Native GL clamps this fixed floor's headlight pass before adding
+            # the scene light; encode that offset in the render-only material.
+            headlight = render_model.vis.headlight
+            intensity = float(headlight.ambient[0] + headlight.diffuse[0])
+            render_model.mat_emission[floor] += min(intensity, 1.0) - intensity
+            self._render_model = self.model.tree_replace(
+                {
+                    "_impl.mat_texrepeat": jnp.asarray(render_model.mat_texrepeat),
+                    "mat_specular": jnp.asarray(render_model.mat_specular),
+                    "mat_emission": jnp.asarray(render_model.mat_emission),
+                }
+            )
             height, width = self.image_size
             context_devices = [f"cuda:{device.local_hardware_id}" for device in self.devices]
             active_cameras = [
                 camera_id == self._camera_id for camera_id in range(self.mj_model.ncam)
             ]
-            self._render_context = mjx.create_render_context(
-                mjm=self.mj_model,
+            self._render_context = create_grid_render_context(
+                model=render_model,
                 nworld=self.worlds_per_device,
                 devices=context_devices,
                 cam_res=(width, height),
@@ -362,7 +381,7 @@ class ReacherEnv:
             empty = jnp.zeros((self.worlds_per_device, 0, 0, 3), dtype=jnp.uint8)
             return data, empty
         return _render_batch(
-            self.model,
+            self._render_model,
             data,
             self._render_context_pytree,
             self._camera_id,
