@@ -33,6 +33,7 @@ except ImportError as exc:  # pragma: no cover - exercised in a base-only instal
         "envX Cube requires JAX and MJX-Warp. Install envX with its standard dependencies."
     ) from exc
 
+from envx._rendering import create_grid_render_context, grid_render_model
 from envx.cube._vendor.envs.cube_env import CubeEnv
 
 _NUM_CUBES = {
@@ -313,14 +314,30 @@ class OGBenchCubeJaxEnv:
         )
 
         self._render_context = None
+        self._mjx_render_model = self._mjx_model
         if observation_type == "pixels":
+            render_model = grid_render_model(self._mj_model)
+            # Native GL rejects Cube's 100-degree cutoff, leaving no cone falloff.
+            spotlight = render_model.light("spotlight")
+            spotlight.cutoff[:] = 180
+            spotlight.exponent[:] = 0
+            # Warp adds an untextured white specular lobe to the dark floor.
+            render_model.mat_specular[render_model.material("grid").id] = 0
+            self._mjx_render_model = self._mjx_model.tree_replace(
+                {
+                    "_impl.mat_texrepeat": jnp.asarray(render_model.mat_texrepeat),
+                    "mat_specular": jnp.asarray(render_model.mat_specular),
+                    "light_cutoff": jnp.asarray(render_model.light_cutoff),
+                    "light_exponent": jnp.asarray(render_model.light_exponent),
+                }
+            )
             camera_id = int(self._mj_model.camera("front_pixels").id)
             active_cameras = [index == camera_id for index in range(self._mj_model.ncam)]
             render_device = None
             if self.device.platform == "gpu":
                 render_device = [f"cuda:{self.device.id}"]
-            self._render_context = mjx.create_render_context(
-                self._mj_model,
+            self._render_context = create_grid_render_context(
+                render_model,
                 nworld=self.num_envs,
                 devices=render_device,
                 cam_res=(self.image_size[1], self.image_size[0]),
@@ -333,7 +350,8 @@ class OGBenchCubeJaxEnv:
                 # otherwise becomes an opaque foreground obstruction in Warp.
                 enabled_geom_groups=list(self.render_geom_groups),
                 use_textures=True,
-                use_shadows=False,
+                use_shadows=True,
+                render_skybox=True,
             )
 
         if self.device.platform != "gpu":
@@ -554,8 +572,8 @@ class OGBenchCubeJaxEnv:
         return ((cube_pos - xyz_center) * 10.0).reshape(-1)
 
     def _render_one(self, data: Any, render_context: Any) -> tuple[jax.Array, Any]:
-        data = mjx.refit_bvh(self._mjx_model, data, render_context)
-        packed_rgb, _ = mjx.render(self._mjx_model, data, render_context)
+        data = mjx.refit_bvh(self._mjx_render_model, data, render_context)
+        packed_rgb, _ = mjx.render(self._mjx_render_model, data, render_context)
         rgb = mjx.get_rgb(render_context, 0, packed_rgb)
         image = jnp.clip(jnp.rint(rgb * 255.0), 0.0, 255.0).astype(jnp.uint8)
         return image, data
